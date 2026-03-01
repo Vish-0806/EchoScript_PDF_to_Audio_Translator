@@ -1,16 +1,163 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from io import BytesIO
 import pdfplumber
+import edge_tts
+import asyncio
+import re
+import os
+import tempfile
+from uuid import uuid4
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 app = Flask(__name__)
+CHUNK_SIZE = 4000  # Optimal size for Edge TTS network efficiency
 
-@app.route("/convert", methods=["POST"])
-def convert():
-    text = request.form.get("text_data")
+# Temporary storage for extracted text (cleared after conversion)
+pending_conversions = {}
 
-    print("Convert button clicked")
 
-    return "Audio conversion will be implemented next!"
+def clean_text(text):
+	"""Aggressively clean and normalize text for clean speech synthesis."""
+	# Remove all URLs including any standalone URLs
+	cleaned = re.sub(r"\b\S*https?\S*\b", "", text, flags=re.IGNORECASE)
+	cleaned = re.sub(r"https?://\S+", "", cleaned)
+	cleaned = re.sub(r"www\.\S+", "", cleaned)
+	
+	# Remove any remaining http/https strings
+	cleaned = re.sub(r"https?", "", cleaned, flags=re.IGNORECASE)
+	
+	# Remove reference markers like [1], [2], [3]
+	cleaned = re.sub(r"\[\d+\]", "", cleaned)
+	
+	# Remove HTML tags and SSML fragments
+	cleaned = re.sub(r"<[^>]+>", "", cleaned)
+	
+	# Remove broken unicode characters and control characters
+	cleaned = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", cleaned)
+	cleaned = re.sub(r"\ufffd", "", cleaned)
+	
+	# Remove excessive dots like "... ..."
+	cleaned = re.sub(r"\.{3,}", ".", cleaned)
+	
+	# Fix hyphenated line breaks
+	cleaned = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", cleaned)
+	
+	# Preserve paragraph structure with double newlines
+	cleaned = re.sub(r"\n\s*\n+", "\n\n", cleaned)
+	
+	# Normalize whitespace within lines but preserve sentence flow
+	cleaned = re.sub(r"[ \t]+", " ", cleaned)
+	cleaned = re.sub(r" \n", "\n", cleaned)
+	cleaned = re.sub(r"\n ", "\n", cleaned)
+	
+	# Remove special characters that might cause issues
+	cleaned = re.sub(r"[<>{}]", "", cleaned)
+	
+	return cleaned.strip()
+
+
+def prepare_text_for_speech(text):
+	"""Prepare text for natural speech synthesis."""
+	# Replace paragraph breaks with period and space for natural pauses
+	prepared = text.replace("\n\n", ". ")
+	
+	# Replace single line breaks with spaces
+	prepared = prepared.replace("\n", " ")
+	
+	# Normalize multiple spaces
+	prepared = re.sub(r"  +", " ", prepared)
+	
+	# Fix excessive periods (but keep sentence endings)
+	prepared = re.sub(r"\.{2,}", ".", prepared)
+	
+	# Clean up spacing around periods
+	prepared = re.sub(r"\s*\.\s*", ". ", prepared)
+	prepared = re.sub(r"\.\s+\.", ".", prepared)
+	
+	return prepared.strip()
+
+
+def split_into_chunks(text, chunk_size=CHUNK_SIZE):
+	"""Split text into chunks for parallel processing."""
+	return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+
+
+def synthesize_chunk(chunk_text, chunk_path):
+	"""Synthesize a single chunk using Edge TTS with plain text."""
+	async def _synthesize():
+		# Use Edge TTS with plain text only (no SSML, no rate)
+		communicate = edge_tts.Communicate(text=chunk_text, voice="en-US-AriaNeural")
+		await communicate.save(chunk_path)
+	
+	loop = asyncio.new_event_loop()
+	try:
+		asyncio.set_event_loop(loop)
+		loop.run_until_complete(_synthesize())
+	finally:
+		asyncio.set_event_loop(None)
+		loop.close()
+
+
+def generate_audio(text):
+	"""Generate audio from text using optimized parallel chunk processing."""
+	cleaned_text = clean_text(text)
+	if not cleaned_text:
+		raise ValueError("No text to convert after cleaning")
+	
+	# Prepare text for speech once (not per chunk)
+	prepared_text = prepare_text_for_speech(cleaned_text)
+	
+	# Split already-prepared text into chunks
+	chunks = split_into_chunks(prepared_text)
+	
+	# Create temporary chunk files with indexed names
+	temp_chunk_paths = []
+	for index in range(len(chunks)):
+		temp_path = os.path.join(
+			tempfile.gettempdir(),
+			f"echoscript_{uuid4().hex}_{index:04d}.mp3"
+		)
+		temp_chunk_paths.append(temp_path)
+	
+	try:
+		# Generate all chunks in parallel with 4 workers (optimal for Edge TTS)
+		with ThreadPoolExecutor(max_workers=4) as chunk_executor:
+			# Submit all chunks
+			futures = {
+				chunk_executor.submit(synthesize_chunk, chunk, chunk_path): index
+				for index, (chunk, chunk_path) in enumerate(zip(chunks, temp_chunk_paths))
+			}
+			
+			# Wait for all chunks to complete with error handling
+			for future in as_completed(futures):
+				chunk_index = futures[future]
+				try:
+					future.result()
+				except Exception as e:
+					raise RuntimeError(f"Chunk {chunk_index} synthesis failed: {str(e)}")
+		
+		# Verify all chunk files exist before merging
+		for index, chunk_path in enumerate(temp_chunk_paths):
+			if not os.path.exists(chunk_path):
+				raise RuntimeError(f"Chunk {index} file missing: {chunk_path}")
+		
+		# Merge chunks in exact original order
+		os.makedirs(app.static_folder, exist_ok=True)
+		output_path = os.path.join(app.static_folder, "output.mp3")
+		
+		with open(output_path, "wb") as output_file:
+			for chunk_path in temp_chunk_paths:
+				with open(chunk_path, "rb") as chunk_file:
+					output_file.write(chunk_file.read())
+	
+	finally:
+		# Always clean up temporary files
+		for chunk_path in temp_chunk_paths:
+			try:
+				if os.path.exists(chunk_path):
+					os.remove(chunk_path)
+			except Exception:
+				pass  # Ignore cleanup errors
 
 
 @app.route("/")
@@ -21,21 +168,52 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload():
 	file = request.files.get("pdf_file")
-
-	if file is None:
+	if not file:
 		return "No file provided", 400
 	
-	# Read file from memory
-	file_stream = BytesIO(file.read())
-	
 	# Extract text from PDF
-	extracted_text = ""
+	file_stream = BytesIO(file.read())
+	full_text = ""
+	
 	with pdfplumber.open(file_stream) as pdf:
 		for page in pdf.pages:
-			extracted_text += page.extract_text() or ""
+			full_text += page.extract_text() or ""
 	
-	return render_template("result.html", text=extracted_text)
+	if not full_text.strip():
+		return "No text found in PDF", 400
+	
+	# Store for conversion
+	conversion_id = uuid4().hex
+	pending_conversions[conversion_id] = full_text
+	
+	return render_template("result.html", conversion_id=conversion_id, text=full_text)
+
+
+@app.route("/convert", methods=["POST"])
+def convert():
+	conversion_id = request.form.get("conversion_id", "")
+	text = pending_conversions.get(conversion_id, "")
+	
+	if not text:
+		return "No text available for conversion", 400
+	
+	try:
+		# Generate audio (blocking - waits for all chunks to complete)
+		generate_audio(text)
+		
+		# Clean up temporary storage
+		pending_conversions.pop(conversion_id, None)
+		
+		return redirect(url_for("audio_ready"))
+	
+	except Exception as e:
+		return f"Conversion failed: {str(e)}", 500
+
+
+@app.route("/audio_ready")
+def audio_ready():
+	return render_template("audio.html")
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+	app.run(debug=True)
