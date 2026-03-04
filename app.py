@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from io import BytesIO
 import pdfplumber
 import edge_tts
@@ -14,6 +14,12 @@ CHUNK_SIZE = 4000  # Optimal size for Edge TTS network efficiency
 
 # Temporary storage for extracted text (cleared after conversion)
 pending_conversions = {}
+
+# Audio generation status
+audio_status = {"processing": False, "ready": False}
+
+# Thread pool executor for background tasks
+executor = ThreadPoolExecutor(max_workers=1)
 
 
 def clean_text(text):
@@ -98,66 +104,82 @@ def synthesize_chunk(chunk_text, chunk_path):
 		loop.close()
 
 
-def generate_audio(text):
+def generate_audio(text, conversion_id):
 	"""Generate audio from text using optimized parallel chunk processing."""
-	cleaned_text = clean_text(text)
-	if not cleaned_text:
-		raise ValueError("No text to convert after cleaning")
-	
-	# Prepare text for speech once (not per chunk)
-	prepared_text = prepare_text_for_speech(cleaned_text)
-	
-	# Split already-prepared text into chunks
-	chunks = split_into_chunks(prepared_text)
-	
-	# Create temporary chunk files with indexed names
-	temp_chunk_paths = []
-	for index in range(len(chunks)):
-		temp_path = os.path.join(
-			tempfile.gettempdir(),
-			f"echoscript_{uuid4().hex}_{index:04d}.mp3"
-		)
-		temp_chunk_paths.append(temp_path)
-	
+	global audio_status
 	try:
-		# Generate all chunks in parallel with 4 workers (optimal for Edge TTS)
-		with ThreadPoolExecutor(max_workers=4) as chunk_executor:
-			# Submit all chunks
-			futures = {
-				chunk_executor.submit(synthesize_chunk, chunk, chunk_path): index
-				for index, (chunk, chunk_path) in enumerate(zip(chunks, temp_chunk_paths))
-			}
+		# Update status: processing started
+		audio_status = {"processing": True, "ready": False}
+		
+		cleaned_text = clean_text(text)
+		if not cleaned_text:
+			raise ValueError("No text to convert after cleaning")
+		
+		# Prepare text for speech once (not per chunk)
+		prepared_text = prepare_text_for_speech(cleaned_text)
+		
+		# Split already-prepared text into chunks
+		chunks = split_into_chunks(prepared_text)
+		
+		# Create temporary chunk files with indexed names
+		temp_chunk_paths = []
+		for index in range(len(chunks)):
+			temp_path = os.path.join(
+				tempfile.gettempdir(),
+				f"echoscript_{uuid4().hex}_{index:04d}.mp3"
+			)
+			temp_chunk_paths.append(temp_path)
+		
+		try:
+			# Generate all chunks in parallel with 4 workers (optimal for Edge TTS)
+			with ThreadPoolExecutor(max_workers=4) as chunk_executor:
+				# Submit all chunks
+				futures = {
+					chunk_executor.submit(synthesize_chunk, chunk, chunk_path): index
+					for index, (chunk, chunk_path) in enumerate(zip(chunks, temp_chunk_paths))
+				}
+				
+				# Wait for all chunks to complete with error handling
+				for future in as_completed(futures):
+					chunk_index = futures[future]
+					try:
+						future.result()
+					except Exception as e:
+						raise RuntimeError(f"Chunk {chunk_index} synthesis failed: {str(e)}")
 			
-			# Wait for all chunks to complete with error handling
-			for future in as_completed(futures):
-				chunk_index = futures[future]
-				try:
-					future.result()
-				except Exception as e:
-					raise RuntimeError(f"Chunk {chunk_index} synthesis failed: {str(e)}")
+			# Verify all chunk files exist before merging
+			for index, chunk_path in enumerate(temp_chunk_paths):
+				if not os.path.exists(chunk_path):
+					raise RuntimeError(f"Chunk {index} file missing: {chunk_path}")
+			
+			# Merge chunks in exact original order
+			os.makedirs(app.static_folder, exist_ok=True)
+			output_path = os.path.join(app.static_folder, "output.mp3")
+			
+			with open(output_path, "wb") as output_file:
+				for chunk_path in temp_chunk_paths:
+					with open(chunk_path, "rb") as chunk_file:
+						output_file.write(chunk_file.read())
 		
-		# Verify all chunk files exist before merging
-		for index, chunk_path in enumerate(temp_chunk_paths):
-			if not os.path.exists(chunk_path):
-				raise RuntimeError(f"Chunk {index} file missing: {chunk_path}")
-		
-		# Merge chunks in exact original order
-		os.makedirs(app.static_folder, exist_ok=True)
-		output_path = os.path.join(app.static_folder, "output.mp3")
-		
-		with open(output_path, "wb") as output_file:
+		finally:
+			# Always clean up temporary files
 			for chunk_path in temp_chunk_paths:
-				with open(chunk_path, "rb") as chunk_file:
-					output_file.write(chunk_file.read())
-	
-	finally:
-		# Always clean up temporary files
-		for chunk_path in temp_chunk_paths:
-			try:
-				if os.path.exists(chunk_path):
-					os.remove(chunk_path)
-			except Exception:
-				pass  # Ignore cleanup errors
+				try:
+					if os.path.exists(chunk_path):
+						os.remove(chunk_path)
+				except Exception:
+					pass  # Ignore cleanup errors
+		
+		# Update status: conversion completed successfully
+		audio_status = {"processing": False, "ready": True}
+		
+		# Clean up temporary storage
+		pending_conversions.pop(conversion_id, None)
+		
+	except Exception as e:
+		# Update status on error
+		audio_status = {"processing": False, "ready": False, "error": str(e)}
+		pending_conversions.pop(conversion_id, None)
 
 
 @app.route("/")
@@ -191,23 +213,24 @@ def upload():
 
 @app.route("/convert", methods=["POST"])
 def convert():
+	global audio_status
 	conversion_id = request.form.get("conversion_id", "")
 	text = pending_conversions.get(conversion_id, "")
 	
 	if not text:
 		return "No text available for conversion", 400
 	
-	try:
-		# Generate audio (blocking - waits for all chunks to complete)
-		generate_audio(text)
-		
-		# Clean up temporary storage
-		pending_conversions.pop(conversion_id, None)
-		
-		return redirect(url_for("audio_ready"))
+	# Start audio generation in background thread
+	executor.submit(generate_audio, text, conversion_id)
 	
-	except Exception as e:
-		return f"Conversion failed: {str(e)}", 500
+	# Redirect to processing page immediately (non-blocking)
+	return render_template("processing.html", conversion_id=conversion_id)
+
+
+@app.route("/status")
+def status():
+	"""Return current audio generation status as JSON."""
+	return jsonify(audio_status)
 
 
 @app.route("/audio_ready")

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Processing Audio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-text {
+            color: #666;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generating Audio...</h1>
+        <div class="spinner"></div>
+        <p class="status-text">Please wait while we convert your text to audio.</p>
+    </div>
+
+    <script>
+        // Poll /status every 2 seconds
+        const pollInterval = setInterval(() => {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Status:', data);
+                    
+                    // If audio is ready, redirect to audio_ready
+                    if (data.ready === true) {
+                        clearInterval(pollInterval);
+                        window.location.href = '/audio_ready';
+                    }
+                    
+                    // If there's an error, show it
+                    if (data.error) {
+                        clearInterval(pollInterval);
+                        document.body.innerHTML = '<div class="container"><h1>Error</h1><p>' + data.error + '</p></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                });
+        }, 2000); // Poll every 2 seconds
+    </script>
+</body>
+</html>
