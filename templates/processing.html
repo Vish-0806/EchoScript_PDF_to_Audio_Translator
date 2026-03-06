@@ -23,15 +23,6 @@
             color: #333;
             margin-bottom: 20px;
         }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -46,26 +37,51 @@
 <body>
     <div class="container">
         <h1>Generating Audio...</h1>
-        <div class="spinner"></div>
+        <div class="status-text">
+            <div id="progress-bar" style="width: 0%; height: 20px; background-color: #3498db; margin: 10px auto;"></div>
+            <span id="progress-text">0%</span>
+        </div>
         <p class="status-text">Please wait while we convert your text to audio.</p>
     </div>
 
     <script>
-        // Poll /status every 2 seconds
+        const progressBar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
+
+        let simulatedProgress = 1;
+
+        function updateProgressUI(value) {
+            progressBar.style.width = value + "%";
+            progressText.innerText = value + "%";
+        }
+
+        // Start at 1% and smoothly move toward 90%.
+        updateProgressUI(simulatedProgress);
+        const smoothProgressInterval = setInterval(() => {
+            if (simulatedProgress < 90) {
+                simulatedProgress += 1;
+                updateProgressUI(simulatedProgress);
+            }
+        }, 150);
+
+        // Keep polling backend status every 2 seconds.
         const pollInterval = setInterval(() => {
             fetch('/status')
                 .then(response => response.json())
                 .then(data => {
                     console.log('Status:', data);
-                    
-                    // If audio is ready, redirect to audio_ready
+
+                    // If audio is ready, immediately complete and redirect.
                     if (data.ready === true) {
+                        clearInterval(smoothProgressInterval);
                         clearInterval(pollInterval);
+                        updateProgressUI(100);
                         window.location.href = '/audio_ready';
                     }
-                    
-                    // If there's an error, show it
+
+                    // If there's an error, stop all timers and show it.
                     if (data.error) {
+                        clearInterval(smoothProgressInterval);
                         clearInterval(pollInterval);
                         document.body.innerHTML = '<div class="container"><h1>Error</h1><p>' + data.error + '</p></div>';
                     }
@@ -73,7 +89,7 @@
                 .catch(error => {
                     console.error('Error fetching status:', error);
                 });
-        }, 2000); // Poll every 2 seconds
+        }, 2000);
     </script>
 </body>
 </html>

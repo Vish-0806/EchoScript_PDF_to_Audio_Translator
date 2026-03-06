@@ -16,7 +16,7 @@ CHUNK_SIZE = 4000  # Optimal size for Edge TTS network efficiency
 pending_conversions = {}
 
 # Audio generation status
-audio_status = {"processing": False, "ready": False}
+audio_status = {"processing": False, "ready": False, "progress": 0}
 
 # Thread pool executor for background tasks
 executor = ThreadPoolExecutor(max_workers=1)
@@ -32,8 +32,11 @@ def clean_text(text):
 	# Remove any remaining http/https strings
 	cleaned = re.sub(r"https?", "", cleaned, flags=re.IGNORECASE)
 	
-	# Remove reference markers like [1], [2], [3]
-	cleaned = re.sub(r"\[\d+\]", "", cleaned)
+	# Remove bracketed references/citations like [1], [a], [1][2], [citation needed], [note 1]
+	cleaned = re.sub(r"\[[^\]]*\]", "", cleaned)
+	
+	# Remove any leftover unmatched square brackets
+	cleaned = cleaned.replace("[", "").replace("]", "")
 	
 	# Remove HTML tags and SSML fragments
 	cleaned = re.sub(r"<[^>]+>", "", cleaned)
@@ -53,6 +56,15 @@ def clean_text(text):
 	
 	# Normalize whitespace within lines but preserve sentence flow
 	cleaned = re.sub(r"[ \t]+", " ", cleaned)
+	cleaned = re.sub(r" \n", "\n", cleaned)
+	cleaned = re.sub(r"\n ", "\n", cleaned)
+	
+	# Clean spacing introduced near punctuation by removed references
+	cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+	
+	# Re-normalize whitespace after all bracket/reference removals
+	cleaned = re.sub(r"[ \t]+", " ", cleaned)
+	cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
 	cleaned = re.sub(r" \n", "\n", cleaned)
 	cleaned = re.sub(r"\n ", "\n", cleaned)
 	
@@ -109,7 +121,7 @@ def generate_audio(text, conversion_id):
 	global audio_status
 	try:
 		# Update status: processing started
-		audio_status = {"processing": True, "ready": False}
+		audio_status = {"processing": True, "ready": False, "progress": 0}
 		
 		cleaned_text = clean_text(text)
 		if not cleaned_text:
@@ -120,6 +132,8 @@ def generate_audio(text, conversion_id):
 		
 		# Split already-prepared text into chunks
 		chunks = split_into_chunks(prepared_text)
+		total_chunks = len(chunks)
+		completed_chunks = 0
 		
 		# Create temporary chunk files with indexed names
 		temp_chunk_paths = []
@@ -144,6 +158,9 @@ def generate_audio(text, conversion_id):
 					chunk_index = futures[future]
 					try:
 						future.result()
+						completed_chunks += 1
+						# Update progress percentage
+						audio_status["progress"] = int((completed_chunks / total_chunks) * 100)
 					except Exception as e:
 						raise RuntimeError(f"Chunk {chunk_index} synthesis failed: {str(e)}")
 			
@@ -171,14 +188,14 @@ def generate_audio(text, conversion_id):
 					pass  # Ignore cleanup errors
 		
 		# Update status: conversion completed successfully
-		audio_status = {"processing": False, "ready": True}
+		audio_status = {"processing": False, "ready": True, "progress": 100}
 		
 		# Clean up temporary storage
 		pending_conversions.pop(conversion_id, None)
 		
 	except Exception as e:
 		# Update status on error
-		audio_status = {"processing": False, "ready": False, "error": str(e)}
+		audio_status = {"processing": False, "ready": False, "progress": 0, "error": str(e)}
 		pending_conversions.pop(conversion_id, None)
 
 
