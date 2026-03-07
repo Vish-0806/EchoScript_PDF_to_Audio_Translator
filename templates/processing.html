@@ -1,95 +1,104 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Processing Audio</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f5f5f5;
-        }
-        .container {
-            text-align: center;
-            background-color: white;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .status-text {
-            color: #666;
-            font-size: 16px;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Generating Audio...</h1>
-        <div class="status-text">
-            <div id="progress-bar" style="width: 0%; height: 20px; background-color: #3498db; margin: 10px auto;"></div>
-            <span id="progress-text">0%</span>
+{% extends "base.html" %}
+
+{% block title %}Processing Audio - EchoScript{% endblock %}
+
+{% block content %}
+<style>
+    .processing-card {
+        text-align: center;
+        background-color: white;
+        padding: 40px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .processing-card h1 {
+        color: #333;
+        margin-bottom: 20px;
+    }
+    .status-text {
+        color: #666;
+        font-size: 16px;
+        margin-top: 20px;
+    }
+    #progress-bar {
+        width: 0%;
+        height: 20px;
+        background-color: #3498db;
+        margin: 10px auto;
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+    .progress-container {
+        background-color: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="processing-card">
+            <h1>Generating Audio...</h1>
+            <div class="status-text">
+                <div class="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <div class="mt-3">
+                    <span id="progress-text" class="fs-4 fw-bold text-primary">0%</span>
+                </div>
+            </div>
+            <p class="status-text">Please wait while we convert your text to audio.</p>
         </div>
-        <p class="status-text">Please wait while we convert your text to audio.</p>
     </div>
+</div>
 
-    <script>
-        const progressBar = document.getElementById("progress-bar");
-        const progressText = document.getElementById("progress-text");
+<script>
+    const progressBar = document.getElementById("progress-bar");
+    const progressText = document.getElementById("progress-text");
 
-        let simulatedProgress = 1;
+    let simulatedProgress = 1;
 
-        function updateProgressUI(value) {
-            progressBar.style.width = value + "%";
-            progressText.innerText = value + "%";
+    function updateProgressUI(value) {
+        progressBar.style.width = value + "%";
+        progressText.innerText = value + "%";
+    }
+
+    // Start at 1% and smoothly move toward 90%.
+    updateProgressUI(simulatedProgress);
+    const smoothProgressInterval = setInterval(() => {
+        if (simulatedProgress < 90) {
+            simulatedProgress += 1;
+            updateProgressUI(simulatedProgress);
         }
+    }, 150);
 
-        // Start at 1% and smoothly move toward 90%.
-        updateProgressUI(simulatedProgress);
-        const smoothProgressInterval = setInterval(() => {
-            if (simulatedProgress < 90) {
-                simulatedProgress += 1;
-                updateProgressUI(simulatedProgress);
-            }
-        }, 150);
+    // Keep polling backend status every 2 seconds.
+    const pollInterval = setInterval(() => {
+        fetch('/status')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status:', data);
 
-        // Keep polling backend status every 2 seconds.
-        const pollInterval = setInterval(() => {
-            fetch('/status')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Status:', data);
+                // If audio is ready, immediately complete and redirect.
+                if (data.ready === true) {
+                    clearInterval(smoothProgressInterval);
+                    clearInterval(pollInterval);
+                    updateProgressUI(100);
+                    window.location.href = '/audio_ready';
+                }
 
-                    // If audio is ready, immediately complete and redirect.
-                    if (data.ready === true) {
-                        clearInterval(smoothProgressInterval);
-                        clearInterval(pollInterval);
-                        updateProgressUI(100);
-                        window.location.href = '/audio_ready';
-                    }
-
-                    // If there's an error, stop all timers and show it.
-                    if (data.error) {
-                        clearInterval(smoothProgressInterval);
-                        clearInterval(pollInterval);
-                        document.body.innerHTML = '<div class="container"><h1>Error</h1><p>' + data.error + '</p></div>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching status:', error);
-                });
-        }, 2000);
-    </script>
-</body>
-</html>
+                // If there's an error, stop all timers and show it.
+                if (data.error) {
+                    clearInterval(smoothProgressInterval);
+                    clearInterval(pollInterval);
+                    document.body.innerHTML = '<div class="container"><h1>Error</h1><p>' + data.error + '</p></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching status:', error);
+            });
+    }, 2000);
+</script>
+{% endblock %}
