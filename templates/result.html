@@ -10,8 +10,34 @@
                     <h2 class="mb-0">Extracted Text</h2>
                 </div>
                 <div class="card-body">
-                    <div class="border rounded p-3 mb-4" style="white-space: pre-wrap; background-color: #f8f9fa; max-height: 400px; overflow-y: auto;">
-                        {{ text }}
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <div class="small text-muted">Total Pages</div>
+                                <div class="h4 mb-0">{{ page_count }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <div class="small text-muted">Total Words</div>
+                                <div class="h4 mb-0">{{ word_count }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <div class="small text-muted">Estimated Audio</div>
+                                <div class="h4 mb-0">{{ estimated_minutes }} min</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="w-100 mx-auto mb-4" style="max-width: 900px;">
+                        <h5 class="mb-3 fw-semibold text-secondary">Document Preview</h5>
+                        <div class="bg-white rounded-3 shadow-sm w-100" style="padding: 30px; max-height: 500px; overflow-y: auto;">
+                            <div class="text-start" style="white-space: pre-wrap; word-break: break-word; line-height: 1.7; font-family: Georgia, 'Times New Roman', serif;">
+                                {{- text | trim -}}
+                            </div>
+                        </div>
                     </div>
 
                     <form action="/convert" method="POST">

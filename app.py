@@ -213,19 +213,31 @@ def upload():
 	# Extract text from PDF
 	file_stream = BytesIO(file.read())
 	full_text = ""
+	page_count = 0
 	
 	with pdfplumber.open(file_stream) as pdf:
+		page_count = len(pdf.pages)
 		for page in pdf.pages:
 			full_text += page.extract_text() or ""
 	
 	if not full_text.strip():
 		return "No text found in PDF", 400
+
+	word_count = len(full_text.split())
+	estimated_minutes = int(round(word_count / 160))
 	
 	# Store for conversion
 	conversion_id = uuid4().hex
 	pending_conversions[conversion_id] = full_text
 	
-	return render_template("result.html", conversion_id=conversion_id, text=full_text)
+	return render_template(
+		"result.html",
+		conversion_id=conversion_id,
+		text=full_text,
+		page_count=page_count,
+		word_count=word_count,
+		estimated_minutes=estimated_minutes,
+	)
 
 
 @app.route("/convert", methods=["POST"])
