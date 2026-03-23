@@ -228,7 +228,10 @@ def upload():
 	
 	# Store for conversion
 	conversion_id = uuid4().hex
-	pending_conversions[conversion_id] = full_text
+	pending_conversions[conversion_id] = {
+		"text": full_text,
+		"estimated_minutes": estimated_minutes,
+	}
 	
 	return render_template(
 		"result.html",
@@ -244,8 +247,14 @@ def upload():
 def convert():
 	global audio_status
 	conversion_id = request.form.get("conversion_id", "")
-	text = pending_conversions.get(conversion_id, "")
+	conversion_data = pending_conversions.get(conversion_id)
 	
+	if not conversion_data:
+		return "No text available for conversion", 400
+
+	text = conversion_data.get("text", "")
+	estimated_minutes = conversion_data.get("estimated_minutes")
+
 	if not text:
 		return "No text available for conversion", 400
 	
@@ -253,7 +262,11 @@ def convert():
 	executor.submit(generate_audio, text, conversion_id)
 	
 	# Redirect to processing page immediately (non-blocking)
-	return render_template("processing.html", conversion_id=conversion_id)
+	return render_template(
+		"processing.html",
+		conversion_id=conversion_id,
+		estimated_minutes=estimated_minutes,
+	)
 
 
 @app.route("/status")
@@ -264,7 +277,19 @@ def status():
 
 @app.route("/audio_ready")
 def audio_ready():
-	return render_template("audio.html")
+	estimated_minutes = request.args.get("estimated_minutes", type=int)
+	output_path = os.path.join(app.static_folder, "output.mp3")
+	file_size = None
+
+	if os.path.exists(output_path):
+		size_bytes = os.path.getsize(output_path)
+		file_size = round(size_bytes / 1024 / 1024, 2)
+
+	return render_template(
+		"audio.html",
+		estimated_minutes=estimated_minutes,
+		file_size=file_size,
+	)
 
 
 if __name__ == "__main__":

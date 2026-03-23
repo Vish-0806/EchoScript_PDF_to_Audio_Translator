@@ -3,32 +3,61 @@
 {% block title %}Audio Output - EchoScript{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-success text-white">
-                <h2 class="mb-0">Audio Generated Successfully</h2>
-            </div>
-            <div class="card-body text-center">
-                <p class="text-muted mb-4">Your PDF has been converted to audio. Play it below:</p>
-                
-                <div class="audio-player mb-4">
-                    <audio controls class="w-100" style="max-width: 500px;">
-                        <source src="{{ url_for('static', filename='output.mp3') }}" type="audio/mpeg">
+<section class="landing-shell d-flex align-items-center justify-content-center py-4 py-md-5">
+    <div class="w-100" style="max-width: 700px;">
+        <div class="card upload-card audio-ready-card border-0">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h1 class="upload-title fw-bold mb-2">Your Audio is Ready 🎧</h1>
+                    <p class="upload-subtitle fs-5 mb-0">Listen or download your generated audio</p>
+                </div>
+
+                <div class="audio-player-shell mb-4">
+                    <p class = "text-success fw-semibold text-center mb-3">Audio Generated Successfully!</p>
+                    <audio controls class="w-100" preload="metadata">
+                        <source src="/static/output.mp3" type="audio/mpeg">
                         Your browser does not support the audio element.
                     </audio>
                 </div>
-                
-                <div class="btn-group" role="group">
-                    <a href="/" class="btn btn-primary">
-                        Convert Another
-                    </a>
-                    <a href="{{ url_for('static', filename='output.mp3') }}" download class="btn btn-outline-secondary">
-                        Download
-                    </a>
+
+                <div class="audio-actions mb-4 d-grid gap-3">
+                    <a href="/static/output.mp3" download class="btn btn-primary btn-lg btn-upload">⬇ Download Audio</a>
+
+                    <a href="/" class="btn btn-outline-primary btn-lg btn-secondary-action">🔁 Convert Another PDF</a>
+                </div>
+
+                <div class="audio-info-grid" aria-label="Audio metadata">
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">File format</span>
+                        <span class="audio-info-value">MP3</span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">File size</span>
+                        <span class="audio-info-value">
+                            {% if file_size is not none %}
+                                {{ file_size }} MB
+                            {% else %}
+                                -- MB
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">Status</span>
+                        <span class="audio-info-value status-ready">Ready</span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">Duration</span>
+                        <span class="audio-info-value">
+                            {% if estimated_minutes is not none %}
+                                {{ estimated_minutes }} min
+                            {% else %}
+                                --:--
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
