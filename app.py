@@ -100,11 +100,10 @@ def split_into_chunks(text, chunk_size=CHUNK_SIZE):
 	return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
-def synthesize_chunk(chunk_text, chunk_path):
+def synthesize_chunk(chunk_text, chunk_path, voice, rate):
 	"""Synthesize a single chunk using Edge TTS with plain text."""
 	async def _synthesize():
-		# Use Edge TTS with plain text only (no SSML, no rate)
-		communicate = edge_tts.Communicate(text=chunk_text, voice="en-US-AriaNeural")
+		communicate = edge_tts.Communicate(text=chunk_text, voice=voice, rate=rate)
 		await communicate.save(chunk_path)
 	
 	loop = asyncio.new_event_loop()
@@ -116,7 +115,7 @@ def synthesize_chunk(chunk_text, chunk_path):
 		loop.close()
 
 
-def generate_audio(text, conversion_id):
+def generate_audio(text, conversion_id, voice, rate):
 	"""Generate audio from text using optimized parallel chunk processing."""
 	global audio_status
 	try:
@@ -149,7 +148,7 @@ def generate_audio(text, conversion_id):
 			with ThreadPoolExecutor(max_workers=4) as chunk_executor:
 				# Submit all chunks
 				futures = {
-					chunk_executor.submit(synthesize_chunk, chunk, chunk_path): index
+					chunk_executor.submit(synthesize_chunk, chunk, chunk_path, voice, rate): index
 					for index, (chunk, chunk_path) in enumerate(zip(chunks, temp_chunk_paths))
 				}
 				
@@ -247,6 +246,14 @@ def upload():
 def convert():
 	global audio_status
 	conversion_id = request.form.get("conversion_id", "")
+	voice = request.form.get("voice", "en-US-AriaNeural")
+	speed = request.form.get("speed", "normal")
+	rate_map = {
+		"slow": "-20%",
+		"normal": "0%",
+		"fast": "+20%"
+	}
+	rate = rate_map.get(speed, "0%")
 	conversion_data = pending_conversions.get(conversion_id)
 	
 	if not conversion_data:
@@ -259,7 +266,7 @@ def convert():
 		return "No text available for conversion", 400
 	
 	# Start audio generation in background thread
-	executor.submit(generate_audio, text, conversion_id)
+	executor.submit(generate_audio, text, conversion_id, voice, rate)
 	
 	# Redirect to processing page immediately (non-blocking)
 	return render_template(

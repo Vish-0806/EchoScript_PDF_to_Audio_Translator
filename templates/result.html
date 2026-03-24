@@ -42,6 +42,21 @@
 
                     <form action="/convert" method="POST">
                         <input type="hidden" name="conversion_id" value="{{ conversion_id }}">
+                        <div class="mb-3">
+                            <label for="voice" class="form-label">Select Voice</label>
+                            <select id="voice" name="voice" class="form-select">
+                                <option value="en-US-AriaNeural">en-US-AriaNeural (Female)</option>
+                                <option value="en-US-GuyNeural">en-US-GuyNeural (Male)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="speed" class="form-label">Playback Speed</label>
+                            <select id="speed" name="speed" class="form-select">
+                                <option value="slow">slow (0.8x)</option>
+                                <option value="normal" selected>normal (1.0x)</option>
+                                <option value="fast">fast (1.2x)</option>
+                            </select>
+                        </div>
                         <div class="d-grid gap-2 d-md-block">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-mic-fill"></i> Convert to Audio
