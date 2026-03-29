@@ -8,15 +8,25 @@ import os
 import tempfile
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from deep_translator import GoogleTranslator
 
 app = Flask(__name__)
 CHUNK_SIZE = 4000  # Optimal size for Edge TTS network efficiency
+LANGUAGE_VOICE_MAP = {
+	"en": "en-US-AriaNeural",
+	"hi": "hi-IN-SwaraNeural",
+	"kn": "kn-IN-SapnaNeural",
+	"es": "es-ES-ElviraNeural",
+}
 
 # Temporary storage for extracted text (cleared after conversion)
 pending_conversions = {}
 
 # Audio generation status
 audio_status = {"processing": False, "ready": False, "progress": 0}
+
+# Store the most recent UI config values for display fallback.
+last_config = {"translate": True}
 
 # Thread pool executor for background tasks
 executor = ThreadPoolExecutor(max_workers=1)
@@ -100,10 +110,14 @@ def split_into_chunks(text, chunk_size=CHUNK_SIZE):
 	return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
 
 
-def synthesize_chunk(chunk_text, chunk_path, voice, rate):
+def synthesize_chunk(chunk_text, chunk_path, voice, rate_multiplier):
 	"""Synthesize a single chunk using Edge TTS with plain text."""
 	async def _synthesize():
-		communicate = edge_tts.Communicate(text=chunk_text, voice=voice, rate=rate)
+		if rate_multiplier == 1.0:
+			communicate = edge_tts.Communicate(text=chunk_text, voice=voice)
+		else:
+			rate_value = f"{int((rate_multiplier - 1.0) * 100):+d}%"
+			communicate = edge_tts.Communicate(text=chunk_text, voice=voice, rate=rate_value)
 		await communicate.save(chunk_path)
 	
 	loop = asyncio.new_event_loop()
@@ -115,7 +129,7 @@ def synthesize_chunk(chunk_text, chunk_path, voice, rate):
 		loop.close()
 
 
-def generate_audio(text, conversion_id, voice, rate):
+def generate_audio(text, conversion_id, voice, rate_multiplier):
 	"""Generate audio from text using optimized parallel chunk processing."""
 	global audio_status
 	try:
@@ -148,7 +162,7 @@ def generate_audio(text, conversion_id, voice, rate):
 			with ThreadPoolExecutor(max_workers=4) as chunk_executor:
 				# Submit all chunks
 				futures = {
-					chunk_executor.submit(synthesize_chunk, chunk, chunk_path, voice, rate): index
+					chunk_executor.submit(synthesize_chunk, chunk, chunk_path, voice, rate_multiplier): index
 					for index, (chunk, chunk_path) in enumerate(zip(chunks, temp_chunk_paths))
 				}
 				
@@ -246,14 +260,16 @@ def upload():
 def convert():
 	global audio_status
 	conversion_id = request.form.get("conversion_id", "")
-	voice = request.form.get("voice", "en-US-AriaNeural")
 	speed = request.form.get("speed", "normal")
-	rate_map = {
-		"slow": "-20%",
-		"normal": "0%",
-		"fast": "+20%"
+	language = request.form.get("language", "en")
+	translate_enabled = request.form.get("translate") == "on"
+	voice = "en-US-AriaNeural"
+	rate_multiplier_map = {
+		"slow": 0.8,
+		"normal": 1.0,
+		"fast": 1.2
 	}
-	rate = rate_map.get(speed, "0%")
+	rate_multiplier = rate_multiplier_map.get(speed, 1.0)
 	conversion_data = pending_conversions.get(conversion_id)
 	
 	if not conversion_data:
@@ -264,15 +280,29 @@ def convert():
 
 	if not text:
 		return "No text available for conversion", 400
+
+	if not translate_enabled:
+		language = "en"
+		voice = "en-US-AriaNeural"
+
+	if translate_enabled and language != "en":
+		text = GoogleTranslator(source="auto", target=language).translate(text)
+		voice = LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural")
+
+	last_config["translate"] = translate_enabled
 	
 	# Start audio generation in background thread
-	executor.submit(generate_audio, text, conversion_id, voice, rate)
+	executor.submit(generate_audio, text, conversion_id, voice, rate_multiplier)
 	
 	# Redirect to processing page immediately (non-blocking)
 	return render_template(
 		"processing.html",
 		conversion_id=conversion_id,
 		estimated_minutes=estimated_minutes,
+		language=language,
+		voice=voice,
+		speed=speed,
+		translate=translate_enabled,
 	)
 
 
@@ -285,6 +315,14 @@ def status():
 @app.route("/audio_ready")
 def audio_ready():
 	estimated_minutes = request.args.get("estimated_minutes", type=int)
+	language = request.args.get("language", "en")
+	voice = request.args.get("voice", LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural"))
+	speed = request.args.get("speed", "normal")
+	translate_raw = request.args.get("translate")
+	if translate_raw is None:
+		translate_enabled = last_config.get("translate", True)
+	else:
+		translate_enabled = translate_raw.lower() == "true"
 	output_path = os.path.join(app.static_folder, "output.mp3")
 	file_size = None
 
@@ -296,6 +334,10 @@ def audio_ready():
 		"audio.html",
 		estimated_minutes=estimated_minutes,
 		file_size=file_size,
+		language=language,
+		voice=voice,
+		speed=speed,
+		translate=translate_enabled,
 	)
 
 

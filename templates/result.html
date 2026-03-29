@@ -57,12 +57,39 @@
                                 <option value="fast">fast (1.2x)</option>
                             </select>
                         </div>
+                        <label for="languageSelect" class="form-label">Select Language</label>
+                        <select id="languageSelect" name="language" class="form-select mb-3">
+                            <option value="en" selected>en (English)</option>
+                            <option value="hi">hi (Hindi)</option>
+                            <option value="es">es (Spanish)</option>
+                            <option value="kn">kn (Kannada)</option>
+                        </select>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="translate" id="translateToggle" checked>
+                            <label class="form-check-label" for="translateToggle">
+                                Translate before audio
+                            </label>
+                        </div>
                         <div class="d-grid gap-2 d-md-block">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-mic-fill"></i> Convert to Audio
+                                <i class="bi bi-mic-fill"></i> Generate Audio
                             </button>
                         </div>
                     </form>
+
+                    <script>
+                        const toggle = document.getElementById("translateToggle");
+                        const dropdown = document.getElementById("languageSelect");
+
+                        function updateState() {
+                            dropdown.disabled = !toggle.checked;
+                            dropdown.classList.toggle("bg-light", dropdown.disabled);
+                            dropdown.classList.toggle("text-muted", dropdown.disabled);
+                        }
+
+                        toggle.addEventListener("change", updateState);
+                        window.onload = updateState;
+                    </script>
                 </div>
             </div>
         </div>
