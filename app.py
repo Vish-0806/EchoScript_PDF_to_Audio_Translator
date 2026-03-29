@@ -25,6 +25,9 @@ pending_conversions = {}
 # Audio generation status
 audio_status = {"processing": False, "ready": False, "progress": 0}
 
+# Store the most recent UI config values for display fallback.
+last_config = {"translate": True}
+
 # Thread pool executor for background tasks
 executor = ThreadPoolExecutor(max_workers=1)
 
@@ -259,7 +262,8 @@ def convert():
 	conversion_id = request.form.get("conversion_id", "")
 	speed = request.form.get("speed", "normal")
 	language = request.form.get("language", "en")
-	voice = LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural")
+	translate_enabled = request.form.get("translate") == "on"
+	voice = "en-US-AriaNeural"
 	rate_multiplier_map = {
 		"slow": 0.8,
 		"normal": 1.0,
@@ -277,8 +281,15 @@ def convert():
 	if not text:
 		return "No text available for conversion", 400
 
-	if language != "en":
+	if not translate_enabled:
+		language = "en"
+		voice = "en-US-AriaNeural"
+
+	if translate_enabled and language != "en":
 		text = GoogleTranslator(source="auto", target=language).translate(text)
+		voice = LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural")
+
+	last_config["translate"] = translate_enabled
 	
 	# Start audio generation in background thread
 	executor.submit(generate_audio, text, conversion_id, voice, rate_multiplier)
@@ -288,6 +299,10 @@ def convert():
 		"processing.html",
 		conversion_id=conversion_id,
 		estimated_minutes=estimated_minutes,
+		language=language,
+		voice=voice,
+		speed=speed,
+		translate=translate_enabled,
 	)
 
 
@@ -300,6 +315,14 @@ def status():
 @app.route("/audio_ready")
 def audio_ready():
 	estimated_minutes = request.args.get("estimated_minutes", type=int)
+	language = request.args.get("language", "en")
+	voice = request.args.get("voice", LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural"))
+	speed = request.args.get("speed", "normal")
+	translate_raw = request.args.get("translate")
+	if translate_raw is None:
+		translate_enabled = last_config.get("translate", True)
+	else:
+		translate_enabled = translate_raw.lower() == "true"
 	output_path = os.path.join(app.static_folder, "output.mp3")
 	file_size = None
 
@@ -311,6 +334,10 @@ def audio_ready():
 		"audio.html",
 		estimated_minutes=estimated_minutes,
 		file_size=file_size,
+		language=language,
+		voice=voice,
+		speed=speed,
+		translate=translate_enabled,
 	)
 
 

@@ -28,8 +28,22 @@
 
                 <div class="audio-info-grid" aria-label="Audio metadata">
                     <div class="audio-info-item">
-                        <span class="audio-info-label">File format</span>
-                        <span class="audio-info-value">MP3</span>
+                        <span class="audio-info-label">Language</span>
+                        <span class="audio-info-value">{{ language }}</span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">Voice</span>
+                        <span class="audio-info-value">{{ voice }}</span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">Speed</span>
+                        <span class="audio-info-value">{{ speed }}</span>
+                    </div>
+                    <div class="audio-info-item">
+                        <span class="audio-info-label">Translation</span>
+                        <span class="audio-info-value">
+                            {{ "Enabled" if translate else "Disabled" }}
+                        </span>
                     </div>
                     <div class="audio-info-item">
                         <span class="audio-info-label">File size</span>
@@ -40,10 +54,6 @@
                                 -- MB
                             {% endif %}
                         </span>
-                    </div>
-                    <div class="audio-info-item">
-                        <span class="audio-info-label">Status</span>
-                        <span class="audio-info-value status-ready">Ready</span>
                     </div>
                     <div class="audio-info-item">
                         <span class="audio-info-label">Duration</span>
