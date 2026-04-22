@@ -4,50 +4,156 @@
 
 {% block content %}
 <style>
+    /* Dark Theme Processing Card */
+    .processing-section {
+        min-height: calc(100vh - 160px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
     .processing-card {
         text-align: center;
-        background-color: white;
-        padding: 40px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        max-width: 600px;
-        margin: 0 auto;
+        background-color: #111827;
+        color: #f9fafb;
+        padding: 4rem 3rem;
+        border-radius: 1.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05);
+        max-width: 650px;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
     }
+
+    /* Shimmer effect inside the card */
+    .processing-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: -100%;
+        width: 50%; height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.04), transparent);
+        transform: skewX(-20deg);
+        animation: shimmer 3.5s infinite;
+        pointer-events: none;
+    }
+    
+    @keyframes shimmer {
+        100% { left: 200%; }
+    }
+
     .processing-card h1 {
-        color: #333;
-        margin-bottom: 20px;
+        font-weight: 800;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
+        background: linear-gradient(to right, #60a5fa, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2rem;
     }
+
     .status-text {
-        color: #666;
-        font-size: 16px;
-        margin-top: 20px;
+        color: #9ca3af;
+        font-size: 1.1rem;
+        margin-bottom: 2.5rem;
+    }
+
+    /* Custom Progress Bar with Accent */
+    .progress-container {
+        background-color: #374151;
+        border-radius: 9999px;
+        height: 12px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .progress-bar-custom {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
+        background-size: 200% 100%;
+        border-radius: 9999px;
+        width: 0%;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: gradient-move 2s linear infinite;
+    }
+
+    @keyframes gradient-move {
+        0% { background-position: 100% 0; }
+        100% { background-position: -100% 0; }
+    }
+
+    .percentage-text {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: #f3f4f6;
+        text-shadow: 0 0 25px rgba(59, 130, 246, 0.4);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        margin-bottom: 1rem;
+    }
+
+    /* Wave Animation */
+    .wave-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 2rem;
+        height: 40px;
+    }
+    
+    .wave-bar {
+        width: 6px;
+        height: 10px;
+        background-color: #60a5fa;
+        border-radius: 3px;
+        animation: pulse-wave 1.2s ease-in-out infinite;
+    }
+    
+    .wave-bar:nth-child(1) { animation-delay: 0.0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 20px; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 35px; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 20px; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    
+    @keyframes pulse-wave {
+        0%, 100% { transform: scaleY(1); opacity: 0.5; }
+        50% { transform: scaleY(1.8); opacity: 1; box-shadow: 0 0 10px #60a5fa; }
     }
 </style>
 
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div
-            id="processing-meta"
-            data-estimated-minutes="{{ estimated_minutes if estimated_minutes is not none else '' }}"
-            data-language="{{ language }}"
-            data-voice="{{ voice }}"
-            data-speed="{{ speed }}"
-            data-translate="{{ 'true' if translate else 'false' }}"
-            hidden
-        ></div>
-        <div class="processing-card">
-            <h1>Generating Audio...</h1>
-            <div class="status-text">
-                <div class="progress mt-4">
-                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar" style="width: 0%">0%</div>
-                </div>
-                <div class="mt-3">
-                    <span id="progress-text" class="fs-4 fw-bold text-primary">0%</span>
-                </div>
-            </div>
-            <p class="status-text">Please wait while we convert your text to audio.</p>
+<div class="processing-section px-3">
+    <div
+        id="processing-meta"
+        data-estimated-minutes="{{ estimated_minutes if estimated_minutes is not none else '' }}"
+        data-language="{{ language }}"
+        data-voice="{{ voice }}"
+        data-speed="{{ speed }}"
+        data-translate="{{ 'true' if translate else 'false' }}"
+        hidden
+    ></div>
+    
+    <div class="processing-card fade-in-up">
+        <div class="wave-container">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
         </div>
+        
+        <h1>Processing your PDF...</h1>
+        <p class="status-text">Converting text to natural-sounding audio</p>
+        
+        <div class="percentage-text" id="progress-text">0%</div>
+        
+        <div class="progress-container">
+            <div id="progressBar" class="progress-bar-custom"></div>
+        </div>
+        
+        <p class="text-muted small mt-4 mb-0 opacity-75">
+            <i class="bi bi-info-circle me-1"></i> Please do not close this window
+        </p>
     </div>
 </div>
 
@@ -64,7 +170,6 @@
 
     function updateProgressUI(value) {
         progressBar.style.width = value + "%";
-        progressBar.innerText = value + "%";
         progressText.innerText = value + "%";
     }
 
@@ -91,13 +196,17 @@
                     params.set("speed", speed);
                     params.set("translate", translate);
                     const targetUrl = `/audio_ready?${params.toString()}`;
-                    window.location.href = targetUrl;
+                    
+                    // Small delay to let 100% render before redirect
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 600);
                 }
 
                 // If there's an error, stop all timers and show it.
                 if (data.error) {
                     clearInterval(pollInterval);
-                    document.body.innerHTML = '<div class="container"><h1>Error</h1><p>' + data.error + '</p></div>';
+                    document.body.innerHTML = '<div class="container mt-5"><div class="alert alert-danger shadow"><h1>Error</h1><p>' + data.error + '</p></div></div>';
                 }
             })
             .catch(error => {
