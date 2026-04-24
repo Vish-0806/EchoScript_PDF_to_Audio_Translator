@@ -15,18 +15,32 @@
                     <p class="upload-subtitle fs-5 mb-0 fade-in-up" style="animation-delay: 0.3s;">Listen to your generated audio or download it to your device</p>
                 </div>
 
-                <div class="audio-player-wrapper mb-5 p-4 fade-in-up" style="animation-delay: 0.4s;">
-                    <p class="text-success fw-semibold text-center mb-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle-fill me-2 mb-1" viewBox="0 0 16 16">
-                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                        </svg>
+                <div class="audio-player-wrapper mb-5 p-4 fade-in-up rounded-4" style="animation-delay: 0.4s;">
+                    <p class="text-success fw-semibold text-center mb-4 d-flex align-items-center justify-content-center" style="color: var(--neon-cyan) !important;">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
                         Audio Generated Successfully!
                     </p>
-                    <div class="custom-audio-container">
-                        <audio controls class="w-100 custom-audio" preload="metadata">
+                    
+                    <!-- Custom Audio Player -->
+                    <div class="custom-audio-container" style="background: rgba(6, 14, 29, 0.8); border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--glass-border);">
+                        <audio id="main-audio" preload="metadata">
                             <source src="/static/output.mp3" type="audio/mpeg">
                             Your browser does not support the audio element.
                         </audio>
+                        
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <button id="play-pause-btn" class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; flex-shrink: 0;">
+                                <i class="bi bi-play-fill fs-3 ms-1" id="play-icon"></i>
+                            </button>
+                            
+                            <div class="w-100 mx-4 position-relative">
+                                <input type="range" id="seek-bar" class="w-100" value="0" min="0" step="0.1" style="accent-color: var(--neon-blue); cursor: pointer; height: 6px; border-radius: 4px; outline: none; background: rgba(255, 255, 255, 0.1);">
+                            </div>
+                            
+                            <div class="text-secondary small fw-medium" style="font-family: 'Space Grotesk', sans-serif; white-space: nowrap;">
+                                <span id="current-time">0:00</span> / <span id="duration-time">--:--</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -71,16 +85,72 @@
                     </div>
                 </div>
 
-                <div class="audio-actions d-flex gap-3 justify-content-center flex-wrap fade-in-up" style="animation-delay: 0.6s;">
+                <div class="audio-actions d-flex gap-3 justify-content-center flex-wrap fade-in-up mt-5" style="animation-delay: 0.6s;">
                     <a href="/static/output.mp3" download class="btn btn-primary btn-lg btn-upload rounded-pill px-4 px-md-5 d-flex align-items-center">
-                        <span class="me-2 fs-4">⬇</span> Download Audio
+                        <i class="bi bi-download me-2 fs-5"></i> Download Audio
                     </a>
                     <a href="/" class="btn btn-outline-primary btn-lg btn-secondary-action rounded-pill px-4 px-md-5 d-flex align-items-center">
-                        <span class="me-2 fs-4">🔁</span> Convert Another
+                        <i class="bi bi-arrow-repeat me-2 fs-5"></i> Convert Another
                     </a>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<script>
+    const audio = document.getElementById('main-audio');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const playIcon = document.getElementById('play-icon');
+    const seekBar = document.getElementById('seek-bar');
+    const currentTimeDisplay = document.getElementById('current-time');
+    const durationTimeDisplay = document.getElementById('duration-time');
+
+    let isPlaying = false;
+
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return "0:00";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    audio.addEventListener('loadedmetadata', () => {
+        seekBar.max = audio.duration;
+        durationTimeDisplay.textContent = formatTime(audio.duration);
+    });
+
+    playPauseBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            audio.pause();
+            playIcon.classList.remove('bi-pause-fill');
+            playIcon.classList.add('bi-play-fill');
+            playIcon.classList.add('ms-1');
+        } else {
+            audio.play();
+            playIcon.classList.remove('bi-play-fill');
+            playIcon.classList.remove('ms-1');
+            playIcon.classList.add('bi-pause-fill');
+        }
+        isPlaying = !isPlaying;
+    });
+
+    audio.addEventListener('timeupdate', () => {
+        seekBar.value = audio.currentTime;
+        currentTimeDisplay.textContent = formatTime(audio.currentTime);
+    });
+
+    seekBar.addEventListener('input', () => {
+        audio.currentTime = seekBar.value;
+    });
+
+    audio.addEventListener('ended', () => {
+        isPlaying = false;
+        playIcon.classList.remove('bi-pause-fill');
+        playIcon.classList.add('bi-play-fill');
+        playIcon.classList.add('ms-1');
+        seekBar.value = 0;
+        currentTimeDisplay.textContent = formatTime(0);
+    });
+</script>
 {% endblock %}
