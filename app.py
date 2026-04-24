@@ -392,9 +392,15 @@ def index():
 	return render_template("index.html")
 
 
-@app.route("/upload", methods=["POST"])
+@app.route("/upload", methods=["GET", "POST"])
 def upload():
+	if request.method == "GET":
+		return render_template("upload.html")
+
 	file = request.files.get("pdf_file")
+	language = request.form.get("language", "en")
+	speed = request.form.get("speed", "normal")
+	translate_enabled = request.form.get("translate") == "on"
 	if not file:
 		return "No file provided", 400
 	
@@ -428,6 +434,9 @@ def upload():
 		page_count=page_count,
 		word_count=word_count,
 		estimated_minutes=estimated_minutes,
+		language=language,
+		speed=speed,
+		translate=translate_enabled,
 	)
 
 
