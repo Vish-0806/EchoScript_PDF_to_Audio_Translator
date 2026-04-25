@@ -226,6 +226,12 @@ http://127.0.0.1:5000
 
 ---
 
+## LiveOn
+
+- https://echoscript-pdf-to-audio-translator.onrender.com
+
+---
+
 ## 📝 Final Note
 
 EchoScript is built to feel like a polished product, not a demo. It combines document extraction, translation, and neural voice synthesis into a focused workflow that is useful, presentable, and easy to extend.
