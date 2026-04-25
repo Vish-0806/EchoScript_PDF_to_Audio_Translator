@@ -291,3 +291,20 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+.developer-credit {
+    opacity: 0.72;
+    letter-spacing: 0.02em;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.08);
+}
+
+.hover-glow {
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+    color: var(--neon-cyan) !important;
+    text-shadow: 0 0 10px rgba(0, 243, 255, 0.32);
+}

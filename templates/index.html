@@ -109,23 +109,49 @@
     <div class="container">
         <div class="row g-4 align-items-start">
             <div class="col-lg-5 reveal-on-scroll">
-                <h2 class="display-6 fw-bold mb-3">About EchoScript</h2>
-                <p class="text-secondary mb-0">A futuristic AI-powered audio platform for people who prefer listening over reading.</p>
+                <h2 class="display-6 fw-bold mb-3">The EchoScript Vision</h2>
+                <p class="text-secondary mb-0">Redefining how we consume information by turning static text into dynamic, intelligent audio.</p>
             </div>
             <div class="col-lg-7 reveal-on-scroll reveal-delay-1">
                 <div class="about-panel">
                     <p>
-                        EchoScript converts static PDF content into intelligent, human-like audio. It combines text extraction, smart cleanup,
-                        language translation, and neural voice synthesis in one streamlined workflow.
+                        <strong>EchoScript</strong> turns static PDFs into clear, natural audio with AI-driven text extraction, smart cleanup, translation, and neural voice synthesis in one streamlined workflow.
                     </p>
                     <p>
-                        The platform is useful for learning on the move, reviewing long reports faster, and improving accessibility for users who
-                        want hands-free content consumption.
+                        Built for accessibility and speed, it helps students revise on the move, professionals absorb long reports faster, and anyone reduce screen time without losing context.
                     </p>
                     <p class="mb-0">
-                        Whether you are a student revising notes, a professional analyzing documentation, or a creator repurposing written content,
-                        EchoScript helps turn documents into practical listening experiences.
+                        The mission is simple: make knowledge more listenable, more productive, and available at your pace in the language you choose.
                     </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="developer" class="landing-section section-developer">
+    <div class="container">
+        <div class="section-heading text-center reveal-on-scroll">
+            <h2 class="display-6 fw-bold mb-2">Meet the Developer</h2>
+            <p class="text-secondary mb-0">The mind behind EchoScript.</p>
+        </div>
+        <div class="row justify-content-center mt-5">
+            <div class="col-lg-8 reveal-on-scroll reveal-delay-1">
+                <div class="developer-card text-center">
+                    <h3 class="h4 mb-3 text-gradient">Vishal S Naik</h3>
+                    <p class="text-secondary mb-4">
+                        Information Science and Engineering student, aspiring Software Engineer, and builder of AI-first products. I focus on scalable backend systems and practical software that solves real-world problems with clean logic and strong performance.
+                    </p>
+                    <div class="developer-focus d-flex justify-content-center gap-3 flex-wrap mb-4">
+                        <span class="focus-badge"><i class="bi bi-cpu me-1"></i> AI Apps</span>
+                        <span class="focus-badge"><i class="bi bi-diagram-3 me-1"></i> Backend Design</span>
+                        <span class="focus-badge"><i class="bi bi-lightbulb me-1"></i> Problem Solving</span>
+                    </div>
+                    <div class="developer-socials d-flex justify-content-center gap-4">
+                        <a href="https://github.com/Vish-0806" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="GitHub"><i class="bi bi-github"></i></a>
+                        <a href="https://www.linkedin.com/in/vishal-s-naik-b511533a8/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                        <a href="mailto:vishalsnaik27@gmail.com" class="social-icon" aria-label="Email"><i class="bi bi-envelope-fill"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -426,6 +452,58 @@
             margin: 0 auto;
             background: linear-gradient(to bottom, rgba(0, 243, 255, 0.35), rgba(188, 19, 254, 0.7));
         }
+    }
+
+    .developer-card {
+        padding: 2.5rem;
+        border-radius: 1.5rem;
+        background: linear-gradient(160deg, rgba(13, 20, 41, 0.82), rgba(7, 11, 24, 0.9));
+        border: 1px solid rgba(0, 243, 255, 0.15);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .developer-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 150px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    }
+
+    .focus-badge {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 99px;
+        background: rgba(188, 19, 254, 0.08);
+        border: 1px solid rgba(188, 19, 254, 0.3);
+        color: var(--neon-purple);
+    }
+
+    .social-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: rgba(0, 243, 255, 0.06);
+        border: 1px solid rgba(0, 243, 255, 0.28);
+        color: var(--neon-cyan);
+        font-size: 1.3rem;
+        box-shadow: 0 0 0 rgba(0, 243, 255, 0);
+        transition: all 0.3s ease;
+    }
+
+    .social-icon:hover {
+        background: rgba(0, 243, 255, 0.16);
+        border-color: rgba(0, 243, 255, 0.52);
+        color: #fff;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 243, 255, 0.34), 0 0 22px rgba(188, 19, 254, 0.22);
     }
 
     @media (max-width: 576px) {
