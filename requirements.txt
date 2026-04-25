@@ -2,3 +2,5 @@
 pdfplumber==0.11.0
 edge-tts==7.2.7
 deep-translator==1.11.4
+gunicorn
+flask-cors

@@ -13,7 +13,14 @@ from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from deep_translator import GoogleTranslator
 
+
+
 app = Flask(__name__)
+
+from flask_cors import CORS
+CORS(app)
+
+
 CHUNK_SIZE = 3000  # Translation uses larger chunks to reduce API calls.
 TTS_CHUNK_SIZE = 2800  # TTS uses smaller chunks to increase parallelism.
 LANGUAGE_VOICE_MAP = {
@@ -656,5 +663,13 @@ def audio_ready():
 	)
 
 
+# if __name__ == "__main__":
+# 	app.run(debug=True, use_reloader = False , threaded=True)
+ 
+import os
+
+port = int(os.environ.get("PORT", 5000))
+
 if __name__ == "__main__":
-	app.run(debug=True, use_reloader = False , threaded=True)
+    app.run(host="0.0.0.0", port=port)
+    
