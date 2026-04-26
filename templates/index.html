@@ -420,12 +420,26 @@
     }
 
     .reveal-on-scroll {
-        opacity: 0;
-        transform: translateY(20px);
+        opacity: 1;
+        transform: translateY(0);
         transition: opacity 0.7s ease, transform 0.7s ease;
     }
 
-    .reveal-on-scroll.revealed {
+    .js-reveal .reveal-on-scroll {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    .js-reveal .reveal-on-scroll.revealed {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Feedback must remain visible even if reveal JS fails. */
+    #feedback,
+    #feedback .reveal-on-scroll {
+        display: block;
+        visibility: visible;
         opacity: 1;
         transform: translateY(0);
     }
@@ -506,6 +520,72 @@
         box-shadow: 0 8px 24px rgba(0, 243, 255, 0.34), 0 0 22px rgba(188, 19, 254, 0.22);
     }
 
+    .feedback-card {
+        padding: 2rem;
+        border-radius: 1.25rem;
+        background: linear-gradient(165deg, rgba(13, 20, 41, 0.84), rgba(7, 11, 24, 0.92));
+        border: 1px solid rgba(0, 243, 255, 0.2);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .feedback-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 170px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+    }
+
+    .section-feedback {
+        scroll-margin-top: 90px;
+    }
+
+    .section-feedback .section-heading h2 {
+        text-shadow: 0 0 16px rgba(0, 243, 255, 0.18);
+    }
+
+    .feedback-card .form-control {
+        background: rgba(0, 0, 0, 0.55) !important;
+    }
+
+    .feedback-textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+
+    .feedback-submit-btn {
+        box-shadow: 0 0 18px rgba(114, 220, 255, 0.28);
+    }
+
+    .feedback-submit-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 26px rgba(0, 243, 255, 0.42), 0 0 20px rgba(188, 19, 254, 0.2);
+    }
+
+    .feedback-alert {
+        border-radius: 0.85rem;
+        border: 1px solid transparent;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .feedback-alert.alert-success {
+        background: rgba(25, 135, 84, 0.16);
+        color: #8df0c2;
+        border-color: rgba(25, 135, 84, 0.35);
+    }
+
+    .feedback-alert.alert-danger {
+        background: rgba(220, 53, 69, 0.15);
+        color: #ff9da6;
+        border-color: rgba(220, 53, 69, 0.35);
+    }
+
     @media (max-width: 576px) {
         .hero-subtitle {
             font-size: 1.1rem;
@@ -527,17 +607,29 @@
 
 <script>
     (function () {
-        const items = document.querySelectorAll('.reveal-on-scroll');
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('revealed');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.15 });
+        if (!('IntersectionObserver' in window)) {
+            return;
+        }
 
-        items.forEach((item) => observer.observe(item));
+        try {
+            document.documentElement.classList.add('js-reveal');
+            const items = document.querySelectorAll('.reveal-on-scroll');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('revealed');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15 });
+
+            items.forEach((item) => observer.observe(item));
+        } catch (error) {
+            document.documentElement.classList.remove('js-reveal');
+            document.querySelectorAll('.reveal-on-scroll').forEach((item) => {
+                item.classList.add('revealed');
+            });
+        }
     })();
 </script>
 {% endblock %}

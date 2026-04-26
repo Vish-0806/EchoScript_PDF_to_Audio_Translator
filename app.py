@@ -5,13 +5,19 @@ import edge_tts
 import asyncio
 import re
 import os
+import smtplib
 import tempfile
 import threading
 import time
 import queue
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from deep_translator import GoogleTranslator
+
+from dotenv import load_dotenv
+import os
 
 
 
@@ -19,6 +25,8 @@ app = Flask(__name__)
 
 from flask_cors import CORS
 CORS(app)
+
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "echoscript-dev-secret")
 
 
 CHUNK_SIZE = 3000  # Translation uses larger chunks to reduce API calls.
@@ -663,13 +671,76 @@ def audio_ready():
 	)
 
 
+@app.route('/feedback', methods=['GET', 'POST'])
+def feedback():
+	if request.method == 'POST':
+		name = request.form.get('name')
+		email = request.form.get('email')
+		message = request.form.get('message')
+
+
+		# Gmail SMTP setup notes:
+		# 1) Enable 2FA on your Gmail account.
+		# 2) Generate an App Password in Google Account security settings.
+		# 3) Set environment variables before running app:
+		#    Windows:
+		#    set EMAIL_USER=your_email@gmail.com
+		#    set EMAIL_PASS=your_app_password
+  
+		EMAIL_USER = os.environ.get('EMAIL_USER')
+		EMAIL_PASS = os.environ.get('EMAIL_PASS')
+
+		msg = MIMEMultipart()
+		msg['From'] = EMAIL_USER
+		msg['To'] = EMAIL_USER
+		msg['Subject'] = "New Feedback - EchoScript"
+
+		body = f"""
+New Feedback Received:
+
+Name: {name}
+Email: {email}
+
+Message:
+{message}
+"""
+
+		msg.attach(MIMEText(body, 'plain'))
+
+		print("🔥 FEEDBACK ROUTE HIT")
+
+		print("EMAIL_USER:", EMAIL_USER)
+		print("EMAIL_PASS:", EMAIL_PASS)
+
+		try:
+			if not EMAIL_USER or not EMAIL_PASS:
+				print("❌ ERROR: Email credentials missing")
+			else:
+				print("STEP 1: Connecting to SMTP...")
+				server = smtplib.SMTP('smtp.gmail.com', 587)
+				server.starttls()
+
+				print("STEP 2: Logging in...")
+				server.login(EMAIL_USER, EMAIL_PASS)
+
+				print("STEP 3: Sending email...")
+				server.send_message(msg)
+
+				server.quit()
+				print("✅ SUCCESS: Email sent!")
+
+		except Exception as e:
+			print("Email error:", e)
+
+		return render_template('feedback_success.html')
+
+	return render_template('feedback.html')
+
+
 # if __name__ == "__main__":
 # 	app.run(debug=True, use_reloader = False , threaded=True)
- 
-import os
-
 port = int(os.environ.get("PORT", 5000))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port , debug=True,)
     

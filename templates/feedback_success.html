@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="feedback-bg" aria-hidden="true">
+    <div class="feedback-bg-particles"></div>
+</div>
+
+<section style="min-height: 80vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 20px;">
+  
+  <div class="feedback-container glass-card" style="max-width: 550px; width: 100%; padding: 4rem 2rem; border-radius: 1.5rem; text-align: center; z-index: 1;">
+    
+    <div class="audio-success-wrapper">
+        <div class="audio-pulse-ring"></div>
+        <div class="audio-pulse-ring"></div>
+        <div class="audio-success-core">
+            <i class="bi bi-check-all audio-success-icon"></i>
+        </div>
+    </div>
+    
+    <h1 class="success-title text-gradient display-5 fw-bold mb-3 mt-2">Transmission Received</h1>
+    <p class="success-message text-secondary mb-5 fs-5">Thank you! Your feedback has been secured and fuels the future of EchoScript.</p>
+    
+    <div class="success-btn">
+        <a href="/" class="btn btn-primary btn-lg rounded-pill px-5 py-3 shadow-lg">
+            <i class="bi bi-soundwave me-2"></i> Return to Studio
+        </a>
+    </div>
+
+  </div>
+  
+</section>
+
+{% endblock %}
