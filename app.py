@@ -6,18 +6,15 @@ import asyncio
 import re
 import os
 import smtplib
+import logging
 import tempfile
 import threading
 import time
 import queue
 from uuid import uuid4
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from email.message import EmailMessage
 from deep_translator import GoogleTranslator
-
-from dotenv import load_dotenv
-import os
 
 
 
@@ -673,68 +670,68 @@ def audio_ready():
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
-	if request.method == 'POST':
-		name = request.form.get('name')
-		email = request.form.get('email')
-		message = request.form.get('message')
+	if request.method == 'GET':
+		return render_template('feedback.html')
 
+	name = (request.form.get('name') or '').strip()
+	email = (request.form.get('email') or '').strip()
+	message = (request.form.get('message') or '').strip()
 
-		# Gmail SMTP setup notes:
-		# 1) Enable 2FA on your Gmail account.
-		# 2) Generate an App Password in Google Account security settings.
-		# 3) Set environment variables before running app:
-		#    Windows:
-		#    set EMAIL_USER=your_email@gmail.com
-		#    set EMAIL_PASS=your_app_password
-  
-		EMAIL_USER = os.environ.get('EMAIL_USER')
-		EMAIL_PASS = os.environ.get('EMAIL_PASS')
+	if not name or not email or not message:
+		app.logger.warning('Feedback submission rejected: missing required fields')
+		return render_template(
+			'feedback.html',
+			error_message='Please fill in your name, email, and feedback message.'
+		), 400
 
-		msg = MIMEMultipart()
-		msg['From'] = EMAIL_USER
-		msg['To'] = EMAIL_USER
-		msg['Subject'] = "New Feedback - EchoScript"
+	email_user = os.environ.get('EMAIL_USER')
+	email_pass = os.environ.get('EMAIL_PASS')
+	if not email_user or not email_pass:
+		app.logger.error('Feedback email not configured: EMAIL_USER/EMAIL_PASS missing')
+		return render_template(
+			'feedback.html',
+			error_message='Feedback service is temporarily unavailable. Please try again later.'
+		), 503
 
-		body = f"""
-New Feedback Received:
+	mail = EmailMessage()
+	mail['Subject'] = 'New Feedback from EchoScript'
+	mail['From'] = email_user
+	mail['To'] = email_user
+	mail.set_content(
+		'New Feedback Received\n\n'
+		f'Name: {name}\n'
+		f'Email: {email}\n\n'
+		'Feedback Message:\n'
+		f'{message}\n'
+	)
 
-Name: {name}
-Email: {email}
-
-Message:
-{message}
-"""
-
-		msg.attach(MIMEText(body, 'plain'))
-
-		print("🔥 FEEDBACK ROUTE HIT")
-
-		print("EMAIL_USER:", EMAIL_USER)
-		print("EMAIL_PASS:", EMAIL_PASS)
-
-		try:
-			if not EMAIL_USER or not EMAIL_PASS:
-				print("❌ ERROR: Email credentials missing")
-			else:
-				print("STEP 1: Connecting to SMTP...")
-				server = smtplib.SMTP('smtp.gmail.com', 587)
-				server.starttls()
-
-				print("STEP 2: Logging in...")
-				server.login(EMAIL_USER, EMAIL_PASS)
-
-				print("STEP 3: Sending email...")
-				server.send_message(msg)
-
-				server.quit()
-				print("✅ SUCCESS: Email sent!")
-
-		except Exception as e:
-			print("Email error:", e)
-
+	server = None
+	try:
+		app.logger.info('Sending feedback email via SMTP')
+		server = smtplib.SMTP('smtp.gmail.com', 587, timeout=15)
+		server.starttls()
+		server.login(email_user, email_pass)
+		server.send_message(mail)
+		app.logger.info('Feedback email sent successfully')
 		return render_template('feedback_success.html')
-
-	return render_template('feedback.html')
+	except smtplib.SMTPException:
+		app.logger.exception('SMTP error while sending feedback email')
+		return render_template(
+			'feedback.html',
+			error_message='We could not send your feedback right now. Please try again shortly.'
+		), 502
+	except Exception:
+		app.logger.exception('Unexpected error while processing feedback submission')
+		return render_template(
+			'feedback.html',
+			error_message='An unexpected error occurred. Please try again.'
+		), 500
+	finally:
+		if server is not None:
+			try:
+				server.quit()
+			except Exception:
+				app.logger.warning('SMTP connection close failed', exc_info=True)
 
 
 # if __name__ == "__main__":
@@ -742,5 +739,5 @@ Message:
 port = int(os.environ.get("PORT", 5000))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port , debug=True,)
+    app.run(host="0.0.0.0", port=port)
     
