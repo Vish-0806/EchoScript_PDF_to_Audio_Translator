@@ -146,11 +146,6 @@ EchoScript uses a layered pipeline designed for speed and reliability.
 - Files are validated before merging
 - The final output is assembled into `static/output.mp3`
 - Temporary files are removed after completion
-
-### Workflow diagram
-
-![EchoScript workflow diagram](static/echoscript-workflow.svg)
-
 ---
 
 ## 🚀 Getting Started
