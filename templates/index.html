@@ -321,18 +321,20 @@
     }
 
     .feature-card {
-        padding: 1.4rem;
-        border-radius: 1rem;
-        background: linear-gradient(160deg, rgba(13, 20, 41, 0.82), rgba(7, 11, 24, 0.9));
-        border: 1px solid rgba(0, 243, 255, 0.15);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        padding: 2.2rem;
+        border-radius: 1.25rem;
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(185, 255, 232, 0.1);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     }
 
     .feature-card:hover {
-        transform: translateY(-6px);
-        border-color: rgba(0, 243, 255, 0.4);
-        box-shadow: 0 0 26px rgba(0, 243, 255, 0.24);
+        transform: translateY(-8px);
+        border-color: var(--neon-cyan);
+        background: rgba(15, 23, 42, 0.6);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(185, 255, 232, 0.15);
     }
 
     .feature-icon {
@@ -383,10 +385,12 @@
     }
 
     .about-panel {
-        padding: 1.5rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(0, 243, 255, 0.16);
-        background: linear-gradient(170deg, rgba(12, 18, 38, 0.85), rgba(7, 11, 24, 0.9));
+        padding: 2.5rem;
+        border-radius: 1.25rem;
+        border: 1px solid rgba(185, 255, 232, 0.1);
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     .about-panel p {
@@ -396,11 +400,12 @@
     }
 
     .cta-box {
-        padding: 2.5rem 1.2rem;
-        border-radius: 1.2rem;
-        border: 1px solid rgba(0, 243, 255, 0.26);
-        background: linear-gradient(145deg, rgba(10, 15, 30, 0.9), rgba(18, 10, 36, 0.88));
-        box-shadow: 0 0 34px rgba(0, 243, 255, 0.2);
+        padding: 4rem 2rem;
+        border-radius: 1.5rem;
+        border: 1px solid rgba(185, 255, 232, 0.2);
+        background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.8), rgba(2, 6, 23, 0.95));
+        backdrop-filter: blur(20px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(185, 255, 232, 0.1);
     }
 
     .hero-cta-primary {

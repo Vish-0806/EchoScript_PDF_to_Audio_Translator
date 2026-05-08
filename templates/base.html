@@ -15,7 +15,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-dark navbar-expand-lg border-bottom border-secondary border-opacity-10 py-3">
         <div class="container">
-            <a class="navbar-brand text-white d-flex align-items-center" href="/">
+            <a class="navbar-brand text-white d-flex align-items-center" href="/home">
                 <i class="bi bi-soundwave me-2 fs-4" style="color: var(--neon-cyan); filter: drop-shadow(0 0 8px var(--neon-cyan));"></i>
                 <span class="text-gradient">EchoScript</span>
             </a>
@@ -25,19 +25,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto fw-medium">
                     <li class="nav-item">
-                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/">Home</a>
+                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/#features">Features</a>
+                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/home#features">Features</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="{{ url_for('upload') }}">Upload</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/#about">The EchoScript Vision</a>
+                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/home#about">The EchoScript Vision</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/#developer">Built By</a>
+                        <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="/home#developer">Built By</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link px-3 py-2 rounded-3 nav-hover transition-all" href="{{ url_for('feedback') }}">Feedback</a>

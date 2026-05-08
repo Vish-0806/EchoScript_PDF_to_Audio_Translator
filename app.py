@@ -400,6 +400,11 @@ def generate_audio_fast(text, voice, rate_multiplier, text_is_clean=False, use_c
 
 
 @app.route("/")
+def welcome():
+	return render_template("welcome.html")
+
+
+@app.route("/home")
 def index():
 	return render_template("index.html")
 
