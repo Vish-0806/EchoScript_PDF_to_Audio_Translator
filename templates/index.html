@@ -9,14 +9,14 @@
 
     <div class="container position-relative hero-content">
         <div class="row align-items-center g-5">
-            <div class="col-lg-7">
+            <div class="col-lg-7 text-center text-lg-start">
                 <span class="hero-badge reveal-on-scroll">AI Audio Intelligence</span>
-                <h1 class="display-2 mb-3 reveal-on-scroll reveal-delay-1 text-gradient">EchoScript</h1>
-                <p class="hero-subtitle mb-4 reveal-on-scroll reveal-delay-2">Transform PDFs into Intelligent Audio</p>
-                <p class="hero-description mb-4 reveal-on-scroll reveal-delay-3">
+                <h1 class="display-2 mb-3 reveal-on-scroll reveal-delay-1 text-gradient text-center text-lg-start">EchoScript</h1>
+                <p class="hero-subtitle mb-4 reveal-on-scroll reveal-delay-2 text-center text-lg-start">Transform PDFs into Intelligent Audio</p>
+                <p class="hero-description mb-4 reveal-on-scroll reveal-delay-3 mx-auto mx-lg-0 text-center text-lg-start">
                     Convert PDFs into natural audio & multiple languages instantly. Experience AI-enhanced processing, translation, and voice synthesis designed for modern productivity.
                 </p>
-                <div class="d-flex flex-wrap gap-3 reveal-on-scroll reveal-delay-4">
+                <div class="reveal-on-scroll reveal-delay-4 hero-cta-group">
                     <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg rounded-pill px-4 hero-cta-primary">Get Started</a>
                     <a href="#features" class="btn btn-outline-info btn-lg rounded-pill px-4 hero-cta-secondary">Learn More</a>
                 </div>
@@ -108,7 +108,7 @@
 <section id="about" class="landing-section section-about">
     <div class="container">
         <div class="row g-4 align-items-start">
-            <div class="col-lg-5 reveal-on-scroll">
+            <div class="col-lg-5 reveal-on-scroll text-center text-lg-start">
                 <h2 class="display-6 fw-bold mb-3">The EchoScript Vision</h2>
                 <p class="text-secondary mb-0">Redefining how we consume information by turning static text into dynamic, intelligent audio.</p>
             </div>
@@ -454,10 +454,28 @@
     .reveal-delay-3 { transition-delay: 0.24s; }
     .reveal-delay-4 { transition-delay: 0.32s; }
 
+        .hero-cta-group {
+            display: flex;
+            justify-content: flex-start;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
     @media (max-width: 992px) {
         .landing-hero {
             min-height: auto;
-            padding-top: 2.7rem;
+            padding-top: 3.5rem;
+            padding-bottom: 4rem;
+            text-align: center;
+        }
+
+        .hero-description {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-cta-group {
+            justify-content: center;
         }
 
         .flow-grid {
@@ -470,6 +488,10 @@
             height: 30px;
             margin: 0 auto;
             background: linear-gradient(to bottom, rgba(0, 243, 255, 0.35), rgba(188, 19, 254, 0.7));
+        }
+
+        .about-panel {
+            padding: 1.75rem;
         }
     }
 
@@ -601,11 +623,32 @@
         }
 
         .hero-audio-visual {
-            min-height: 260px;
+            min-height: 240px;
+            transform: scale(0.85);
         }
 
         .audio-bars span {
             width: 4px;
+        }
+
+        .hero-cta-group {
+            display: grid !important;
+            grid-template-columns: 1fr;
+            width: 100%;
+            gap: 0.85rem !important;
+        }
+
+        .hero-cta-group .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+
+        .developer-card {
+            padding: 1.5rem;
+        }
+
+        .cta-box {
+            padding: 3rem 1.5rem;
         }
     }
 </style>
