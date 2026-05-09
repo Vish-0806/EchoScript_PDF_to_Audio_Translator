@@ -229,7 +229,7 @@ def synthesize_chunk(chunk_text, chunk_path, voice, rate_multiplier):
 		loop.close()
 
 
-def generate_audio(text, conversion_id, voice, rate_multiplier, text_is_clean=False):
+def generate_audio(text, conversion_id, voice, rate_multiplier, output_filename="output.mp3", text_is_clean=False):
 	"""Generate audio from text using optimized parallel chunk processing."""
 	global audio_status
 	start_time = time.time()
@@ -286,7 +286,7 @@ def generate_audio(text, conversion_id, voice, rate_multiplier, text_is_clean=Fa
 			
 			# Merge chunks in exact original order
 			os.makedirs(app.static_folder, exist_ok=True)
-			output_path = os.path.join(app.static_folder, "output.mp3")
+			output_path = os.path.join(app.static_folder, output_filename)
 			
 			with open(output_path, "wb") as output_file:
 				for chunk_path in temp_chunk_paths:
@@ -317,7 +317,7 @@ def generate_audio(text, conversion_id, voice, rate_multiplier, text_is_clean=Fa
 		pending_conversions.pop(conversion_id, None)
 
 
-def generate_audio_fast(text, voice, rate_multiplier, text_is_clean=False, use_chunked=None):
+def generate_audio_fast(text, voice, rate_multiplier, output_filename="output.mp3", text_is_clean=False, use_chunked=None):
 	"""Generate FAST mode audio synchronously with adaptive chunk strategy."""
 	global audio_status
 	start_time = time.time()
@@ -338,7 +338,7 @@ def generate_audio_fast(text, voice, rate_multiplier, text_is_clean=False, use_c
 			return False
 
 		os.makedirs(app.static_folder, exist_ok=True)
-		output_path = os.path.join(app.static_folder, "output.mp3")
+		output_path = os.path.join(app.static_folder, output_filename)
 
 		# Use chunked parallel synthesis for large texts; single call for short text.
 		# If use_chunked is provided, honor explicit mode selection from /convert.
@@ -415,9 +415,10 @@ def upload():
 		return render_template("upload.html")
 
 	file = request.files.get("pdf_file")
-	language = request.form.get("language", "en")
-	speed = request.form.get("speed", "normal")
-	translate_enabled = request.form.get("translate") == "on"
+	# Use default values for language and speed since they're no longer on upload form
+	language = "en"
+	speed = "normal"
+	translate_enabled = False
 	if not file:
 		return "No file provided", 400
 	
@@ -437,11 +438,15 @@ def upload():
 	word_count = len(full_text.split())
 	estimated_minutes = int(round(word_count / 160))
 	
+	# Extract PDF filename and remove extension to use for audio output
+	pdf_filename = file.filename.rsplit(".", 1)[0] if file.filename else "output"
+	
 	# Store for conversion
 	conversion_id = uuid4().hex
 	pending_conversions[conversion_id] = {
 		"text": full_text,
 		"estimated_minutes": estimated_minutes,
+		"pdf_filename": pdf_filename,
 	}
 	
 	return render_template(
@@ -477,6 +482,7 @@ def convert():
 		return "No text available for conversion", 400
 
 	text = conversion_data.get("text", "")
+	pdf_filename = conversion_data.get("pdf_filename", "output")
 	estimated_minutes = conversion_data.get("estimated_minutes")
 
 	if not text:
@@ -496,6 +502,9 @@ def convert():
 	print(f"  Speed: {speed} ({rate_multiplier}x)")
 	print("="*60)
 	
+	# Construct output filename with .mp3 extension
+	output_filename = f"{pdf_filename}.mp3"
+	
 	# AUTO MODE 1: no translation needed (translate OFF OR language is English)
 	# If short text (<3000): direct TTS; else chunked parallel FAST mode.
 	if not needs_translation:
@@ -509,6 +518,7 @@ def convert():
 			text,
 			voice,
 			rate_multiplier,
+			output_filename=output_filename,
 			text_is_clean=False,
 			use_chunked=use_chunked_fast,
 		)
@@ -517,7 +527,7 @@ def convert():
 			return "Audio generation failed", 500
 		
 		# Redirect directly to audio page (instant feedback, no polling)
-		return redirect(url_for("audio_ready", estimated_minutes=estimated_minutes, language=language, voice=voice, speed=speed, translate=translate_enabled))
+		return redirect(url_for("audio_ready", conversion_id=conversion_id, estimated_minutes=estimated_minutes, language=language, voice=voice, speed=speed, translate=translate_enabled))
 
 	# AUTO MODE 2: translation + TTS pipeline per chunk for maximum overlap.
 	print("[/convert] → TRANSLATION + TTS PIPELINE MODE\n")
@@ -616,7 +626,7 @@ def convert():
 				raise RuntimeError(f"Pipeline chunk {index} file missing: {chunk_path}")
 
 		os.makedirs(app.static_folder, exist_ok=True)
-		output_path = os.path.join(app.static_folder, "output.mp3")
+		output_path = os.path.join(app.static_folder, output_filename)
 
 		with open(output_path, "wb") as output_file:
 			for chunk_path in temp_chunk_paths:
@@ -635,7 +645,7 @@ def convert():
 			except Exception:
 				pass
 
-	return redirect(url_for("audio_ready", estimated_minutes=estimated_minutes, language=language, voice=voice, speed=speed, translate=translate_enabled))
+	return redirect(url_for("audio_ready", conversion_id=conversion_id, estimated_minutes=estimated_minutes, language=language, voice=voice, speed=speed, translate=translate_enabled))
 
 
 @app.route("/status")
@@ -646,6 +656,7 @@ def status():
 
 @app.route("/audio_ready")
 def audio_ready():
+	conversion_id = request.args.get("conversion_id", "")
 	estimated_minutes = request.args.get("estimated_minutes", type=int)
 	language = request.args.get("language", "en")
 	voice = request.args.get("voice", LANGUAGE_VOICE_MAP.get(language, "en-US-AriaNeural"))
@@ -655,7 +666,15 @@ def audio_ready():
 		translate_enabled = last_config.get("translate", True)
 	else:
 		translate_enabled = translate_raw.lower() == "true"
-	output_path = os.path.join(app.static_folder, "output.mp3")
+	
+	# Get pdf_filename from conversion data
+	pdf_filename = "output"
+	if conversion_id and conversion_id in pending_conversions:
+		pdf_filename = pending_conversions[conversion_id].get("pdf_filename", "output")
+	
+	# Construct the audio filename
+	audio_filename = f"{pdf_filename}.mp3"
+	output_path = os.path.join(app.static_folder, audio_filename)
 	file_size = None
 
 	if os.path.exists(output_path):
@@ -664,6 +683,7 @@ def audio_ready():
 
 	return render_template(
 		"audio.html",
+		audio_filename=audio_filename,
 		estimated_minutes=estimated_minutes,
 		file_size=file_size,
 		language=language,
