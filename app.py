@@ -711,8 +711,26 @@ def feedback():
 
 	email_user = os.environ.get('EMAIL_USER')
 	email_pass = os.environ.get('EMAIL_PASS')
+
+	def _save_feedback_locally():
+		try:
+			feedback_dir = os.path.join(app.instance_path, 'feedbacks')
+			os.makedirs(feedback_dir, exist_ok=True)
+			fname = f"feedback_{int(time.time())}_{uuid4().hex}.txt"
+			fpath = os.path.join(feedback_dir, fname)
+			with open(fpath, 'w', encoding='utf-8') as fh:
+				fh.write(f"Name: {name}\nEmail: {email}\n\n")
+				fh.write(message)
+			app.logger.info(f"Saved feedback locally to %s", fpath)
+			return True
+		except Exception as e:
+			app.logger.exception('Failed to save feedback locally')
+			return False
+
 	if not email_user or not email_pass:
-		app.logger.error('Feedback email not configured: EMAIL_USER/EMAIL_PASS missing')
+		app.logger.warning('EMAIL_USER/EMAIL_PASS not set; saving feedback locally')
+		if _save_feedback_locally():
+			return render_template('feedback_success.html')
 		return render_template(
 			'feedback.html',
 			error_message='Feedback service is temporarily unavailable. Please try again later.'
@@ -740,13 +758,17 @@ def feedback():
 		app.logger.info('Feedback email sent successfully')
 		return render_template('feedback_success.html')
 	except smtplib.SMTPException:
-		app.logger.exception('SMTP error while sending feedback email')
+		app.logger.exception('SMTP error while sending feedback email; falling back to local save')
+		if _save_feedback_locally():
+			return render_template('feedback_success.html')
 		return render_template(
 			'feedback.html',
 			error_message='We could not send your feedback right now. Please try again shortly.'
 		), 502
 	except Exception:
-		app.logger.exception('Unexpected error while processing feedback submission')
+		app.logger.exception('Unexpected error while processing feedback submission; falling back to local save')
+		if _save_feedback_locally():
+			return render_template('feedback_success.html')
 		return render_template(
 			'feedback.html',
 			error_message='An unexpected error occurred. Please try again.'
