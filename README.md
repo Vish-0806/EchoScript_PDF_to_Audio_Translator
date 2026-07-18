@@ -1,4 +1,4 @@
-# 🎧 EchoScript - PDF To Audio Translator
+# 🎧 EchoScript - A PDF To Audio Translator
 
 EchoScript is a full-stack AI-powered web application that converts PDF documents into natural-sounding audio, with optional multilingual translation before speech generation. It is built as a SaaS-style experience with a clean, futuristic UI and a fast processing pipeline designed for real-world document workloads.
 
